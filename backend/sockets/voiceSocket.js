@@ -2,7 +2,8 @@ const speech = require("@google-cloud/speech");
 const textToSpeech = require("@google-cloud/text-to-speech");
 const Session = require("../models/Session");
 const Relationship = require("../models/Relationship");
-const prompts = require("../utils/prompts");
+const { getPrompts } = require("../utils/prompts");
+const { calculateSentiment } = require("../utils/sentiment");
 
 const speechClient = new speech.SpeechClient();
 const ttsClient = new textToSpeech.TextToSpeechClient();
@@ -34,20 +35,29 @@ module.exports = io => {
           return;
         }
 
-        // Basic Sentiment
-        const sentiment = /love|great|happy/i.test(text) ? 0.5 : /frustrated|hurt|sad/i.test(text) ? -0.5 : 0;
+        // Calculate Sentiment
+        const sentiment = calculateSentiment(text, session.phase);
 
         // Save Memory
         await Relationship.updateOne(
           { _id: session.relationshipId },
-          { $push: { memories: { type: session.phase, content: text, sentiment } } }
+          {
+            $push: {
+              memories: { type: session.phase, content: text, sentiment },
+              sentimentTrends: {
+                sessionId: session._id,
+                avgSentiment: sentiment,
+                timestamp: new Date()
+              }
+            }
+          }
         );
         await Session.updateOne({ _id: sessionId }, { $set: { transcript: session.transcript + "\n" + text } });
 
         // Next Prompt
         let nextPhase = session.phase;
         let nextIndex = session.promptIndex + 1;
-        if (nextIndex >= prompts[session.phase].length) {
+        if (nextIndex >= getPrompts(nextPhase, relationship.contactName, relationship.memories).length) {
           const phases = ["onboarding", "emotional", "dynamics", "dualLens"];
           nextPhase = phases[phases.indexOf(session.phase) + 1] || "done";
           nextIndex = 0;
@@ -59,7 +69,8 @@ module.exports = io => {
           return;
         }
 
-        const prompt = prompts[nextPhase][nextIndex].replace("{name}", relationship.contactName);
+        const prompts = getPrompts(nextPhase, relationship.contactName, relationship.memories);
+        const prompt = prompts[nextIndex];
         const [ttsResult] = await ttsClient.synthesizeSpeech({
           input: { text: prompt },
           voice: { languageCode: "en-US", ssmlGender: "NEUTRAL" },
