@@ -1,7 +1,7 @@
 const Session = require("../models/Session");
 const Relationship = require("../models/Relationship");
 const textToSpeech = require("@google-cloud/text-to-speech");
-const prompts = require("../utils/prompts");
+const { getPrompts } = require("../utils/prompts");
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
@@ -11,7 +11,8 @@ exports.startSession = async (req, res) => {
     const session = new Session({ userId, relationshipId, phase: "onboarding", promptIndex: 0, transcript: "" });
     await session.save();
     const relationship = await Relationship.findById(relationshipId);
-    const prompt = prompts.onboarding[0].replace("{name}", relationship.contactName);
+    const prompts = getPrompts("onboarding", relationship.contactName);
+    const prompt = prompts[0];
     const [ttsResult] = await ttsClient.synthesizeSpeech({
       input: { text: prompt },
       voice: { languageCode: "en-US", ssmlGender: "NEUTRAL" },
@@ -26,13 +27,31 @@ exports.startSession = async (req, res) => {
 exports.getSummary = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id).populate("relationshipId");
-    const memories = await Relationship.findById(session.relationshipId).select("memories");
-    const summary = `You shared about ${session.relationshipId.contactName}. ${
-      memories.memories.some(m => m.sentiment > 0)
-        ? "You mentioned some positive moments."
-        : "You talked about some challenges."
-    }`;
-    res.json({ summary });
+    const relationship = await Relationship.findById(session.relationshipId);
+    const memories = relationship.memories || [];
+
+    // Calculate overall sentiment
+    const avgSentiment = memories.length > 0
+      ? memories.reduce((sum, m) => sum + m.sentiment, 0) / memories.length
+      : 0;
+
+    // Key insights
+    const positive = memories.filter(m => m.sentiment > 0);
+    const negative = memories.filter(m => m.sentiment < 0);
+    let insights = `You shared about ${relationship.contactName}. `;
+    if (positive.length > 0) {
+      insights += `You mentioned positive moments like "${positive[0].content}". `;
+    }
+    if (negative.length > 0) {
+      insights += `You also talked about challenges, like "${negative[0].content}". `;
+    }
+
+    // Actionable suggestion
+    const suggestion = negative.length > 0
+      ? `Try discussing "${negative[0].content}" openly with ${relationship.contactName} to clear things up.`
+      : `Keep nurturing your bond with ${relationship.contactName} by sharing more moments like "${positive[0]?.content || "these"}".`;
+
+    res.json({ summary: insights + suggestion });
   } catch (err) {
     res.status(500).json({ message: "Error fetching summary" });
   }
