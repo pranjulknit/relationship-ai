@@ -36,7 +36,9 @@ An emotionally intelligent relationship assistant that guides users to build bal
 - **`public/`**: Static files (e.g., index.html).
 
 ## 🔌 Environment Variables (.env in /backend)
-
+``` HUGGINGFACE_API_TOKEN=hf_your_token_here
+MONGODB_URI=mongodb://localhost:27017/relationshipai
+```
 
 ## ▶️ Run Locally
 
