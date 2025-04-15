@@ -40,15 +40,15 @@ An emotionally intelligent relationship assistant that guides users to build bal
 
 ## ▶️ Run Locally
 
-### 1. Backend
-```javascript
+
+```
 cd backend
 npm install
-node server.js ```
+node server.js
 
 
-### 2. frontend
-```javascript
+2. Frontend
+
 cd frontend
 npm install
 npm run dev ```
