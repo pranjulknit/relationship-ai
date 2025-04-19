@@ -6,9 +6,10 @@ const authRoutes = require("./routes/auth");
 const relationshipRoutes = require("./routes/relationships");
 const sessionRoutes = require("./routes/session");
 const setupVoiceSocket = require("./sockets/voiceSocket");
-
+const cors = require("cors");
 dotenv.config();
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
