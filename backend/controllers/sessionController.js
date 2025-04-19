@@ -3,7 +3,7 @@ const Relationship = require("../models/Relationship");
 const textToSpeech = require("@google-cloud/text-to-speech");
 const { getPrompts } = require("../utils/prompts");
 const { generateSummary } = require("../utils/huggingface");
-const { console } = require("inspector");
+
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 

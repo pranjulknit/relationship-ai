@@ -58,3 +58,36 @@ npm run dev ```
 
 
 ### Frontend communicates with the backend at http://localhost:5000
+
+
+## 🚀 Steps to Run backend Container
+
+This backend is containerized using Docker and is ready to be deployed locally or to platforms like Cloud Run.
+
+### 🔧 Prerequisites
+
+- [Docker](https://www.docker.com/) installed
+- `.env` file with required environment variables
+
+### 📁 Required `.env` File
+
+Create a `.env` file in the root directory with the following variables:
+
+MONGO_URI=your_mongodb_uri 
+JWT_SECRET=your_jwt_secret 
+GOOGLE_APPLICATION_CREDENTIALS=./gcp-key.json 
+HUGGINGFACE_API_TOKEN=your_huggingface_token
+
+
+> 🔒 Make sure to keep this file secret and **never commit it to Git** (already in `.dockerignore`).
+
+---
+
+### 🐳 Build the Docker Image
+
+```bash
+docker build -t backend-app .
+```bash
+docker run --env-file .env -v "$(pwd)/gcp-key.json:/app/gcp-key.json" -p 5000:5000 backend-app
+
+Note:- Please create gcp-key.json file from https://console.cloud.google.com/iam-admin/serviceaccounts
